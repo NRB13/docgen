@@ -1,0 +1,12 @@
+/* Plugin Editor-specific styles */
+.main-content {
+    background-color: #f4f6f8;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+p {
+    font-size: 1.2rem;
+    color: #555;
+}
