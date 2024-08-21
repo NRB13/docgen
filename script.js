@@ -215,11 +215,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function formatText(command) {
-        document.execCommand(command);
-        updateStatusMessage(`Text ${command} applied.`, 'success');
-    }
-
     function handleDragStart(event) {
         event.dataTransfer.setData('text/plain', selectedComponent.outerHTML);
         selectedComponent.classList.add('dragging');
@@ -248,148 +243,221 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 1000);
     }
 
-    // Toolbar Buttons
-    document.getElementById('save-button').addEventListener('click', () => {
-        const content = documentArea.innerHTML;
-        localStorage.setItem('savedDocument', content);
-        updateStatusMessage('Document saved successfully.', 'success');
+    // New Preview Modal functionality
+    const previewModal = document.getElementById('preview-modal');
+    const previewContent = document.getElementById('preview-content');
+    const previewCloseButton = document.getElementById('preview-close-button');
+    const previewButton = document.getElementById('preview-button');
+    const saveToGalleryButton = document.getElementById('save-to-gallery-button');
+
+    previewButton.addEventListener('click', showPreview);
+    previewCloseButton.addEventListener('click', () => {
+        previewModal.classList.add('hidden');
     });
 
+    function showPreview() {
+        const content = documentArea.innerHTML;
+        const styles = getAllStyles();
+        previewContent.innerHTML = `<style>${styles}</style>${content}`;
+        previewModal.classList.remove('hidden');
+    }
+
+    function getAllStyles() {
+        let styles = '';
+        const styleSheets = document.styleSheets;
+        for (let i = 0; i < styleSheets.length; i++) {
+            const rules = styleSheets[i].cssRules || styleSheets[i].rules;
+            for (let j = 0; j < rules.length; j++) {
+                styles += rules[j].cssText + '\n';
+            }
+        }
+        return styles;
+    }
+
+    // Updated Save button functionality
+    document.getElementById('save-button').addEventListener('click', () => {
+        const content = documentArea.innerHTML;
+        const styles = getAllStyles();
+        const fullHtml = `
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Saved Document</title>
+                <style>${styles}</style>
+            </head>
+            <body>
+                ${content}
+            </body>
+            </html>
+        `;
+        const blob = new Blob([fullHtml], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'document.html';
+        a.click();
+
+        URL.revokeObjectURL(url);
+        updateStatusMessage('Document saved as HTML with styles.', 'success');
+    });
+
+    // Save to Gallery functionality
+    saveToGalleryButton.addEventListener('click', () => {
+        const title = prompt("Enter a title for your document:");
+        if (title) {
+            const content = documentArea.innerHTML;
+            const styles = getAllStyles();
+            const fullHtml = `
+                <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>${title}</title>
+                    <style>${styles}</style>
+                </head>
+                <body>
+                    ${content}
+                </body>
+                </html>
+            `;
+            const savedDocuments = JSON.parse(localStorage.getItem('savedDocuments') || '[]');
+            savedDocuments.push({ title, content: fullHtml, createdAt: new Date().toISOString() });
+            localStorage.setItem('savedDocuments', JSON.stringify(savedDocuments));
+            updateStatusMessage('Document saved to gallery.', 'success');
+        }
+    });
+
+    // Existing Export button functionality
     document.getElementById('export-button').addEventListener('click', () => {
+        const element = document.getElementById('document-area');
+
+        const opt = {
+            margin: 1,
+            filename: 'document.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
+        html2pdf().from(element).set(opt).save();
         updateStatusMessage('Document exported as PDF.', 'success');
     });
 
-    document.getElementById(`clear-button`).addEventListener(`click`, () => {
-        documentArea.innerHTML = `<p class="placeholder-text">Drag components here to start building your document.</p>`;
-        editorToolbar.classList.add(`hidden`);
-        updateStatusMessage(`Document cleared.`, 'error');
+    // Existing Clear button functionality
+    document.getElementById('clear-button').addEventListener('click', () => {
+        documentArea.innerHTML = '<p class="placeholder-text">Drag components here to start building your document.</p>';
+        editorToolbar.classList.add('hidden');
+        updateStatusMessage('Document cleared.', 'error');
     });
-});
 
-// ... (existing code remains unchanged)
-
-async function loadComponent(packName, componentName) {
-    const url = `components/${packName}/${componentName}.html`;
-    try {
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+    // Check if we're editing a document from the gallery
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('edit') === 'true') {
+        const editingDocument = JSON.parse(localStorage.getItem('editingDocument'));
+        if (editingDocument) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(editingDocument.content, 'text/html');
+            documentArea.innerHTML = doc.body.innerHTML;
+            updateStatusMessage('Document loaded for editing.', 'success');
+            localStorage.removeItem('editingDocument');
         }
-        return await response.text();
-    } catch (error) {
-        console.error('Fetch error:', error);
-        return `<div class="error">[${componentName} component failed to load from ${url}]</div>`;
     }
-}
 
-function createComponentElement(htmlContent) {
-    const element = document.createElement('div');
-    element.classList.add('document-component');
-    element.innerHTML = htmlContent;
-    element.contentEditable = true;
+    // Initialize chart components
+    function initializeChart(element) {
+        const chartContainer = element.querySelector('.chart-container');
+        const chartType = element.classList.contains('doc-bar-chart') ? 'bar' :
+                          element.classList.contains('doc-pie-chart') ? 'pie' :
+                          element.classList.contains('doc-line-graph') ? 'line' : null;
 
-    // Attach Event Listeners
-    element.addEventListener('click', () => selectComponent(element));
-    element.addEventListener('dragstart', handleDragStart);
-    element.addEventListener('dragover', handleDragOver);
-    element.addEventListener('drop', handleDrop);
+        if (chartType) {
+            const ctx = document.createElement('canvas');
+            chartContainer.appendChild(ctx);
+            const chart = new Chart(ctx, {
+                type: chartType,
+                data: {
+                    labels: ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
+                    datasets: [{
+                        label: '# of Votes',
+                        data: [12, 19, 3, 5, 2, 3],
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.2)',
+                            'rgba(54, 162, 235, 0.2)',
+                            'rgba(255, 206, 86, 0.2)',
+                            'rgba(75, 192, 192, 0.2)',
+                            'rgba(153, 102, 255, 0.2)',
+                            'rgba(255, 159, 64, 0.2)'
+                        ],
+                        borderColor: [
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(255, 206, 86, 1)',
+                            'rgba(75, 192, 192, 1)',
+                            'rgba(153, 102, 255, 1)',
+                            'rgba(255, 159, 64, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
 
-    // Add chart initialization
-    initializeChart(element);
+            // Add event listeners for input fields
+            const toggleInputs = element.querySelector('.toggle-inputs');
+            const inputFields = element.querySelector('.input-fields');
+            const addDataBtn = element.querySelector('.add-data');
+            const updateChartBtn = element.querySelector('.update-chart');
 
-    return element;
-}
+            toggleInputs.addEventListener('click', () => {
+                inputFields.style.display = inputFields.style.display === 'none' ? 'block' : 'none';
+            });
 
-function initializeChart(element) {
-    const chartContainer = element.querySelector('.chart-container');
-    const chartType = element.classList.contains('doc-bar-chart') ? 'bar' :
-                      element.classList.contains('doc-pie-chart') ? 'pie' :
-                      element.classList.contains('doc-line-graph') ? 'line' : null;
+            addDataBtn.addEventListener('click', () => {
+                const labelInput = element.querySelector('.label-input');
+                const valueInput = element.querySelector('.value-input');
+                if (labelInput.value && valueInput.value) {
+                    chart.data.labels.push(labelInput.value);
+                    chart.data.datasets[0].data.push(parseFloat(valueInput.value));
+                    labelInput.value = '';
+                    valueInput.value = '';
+                    chart.update();
+                }
+            });
 
-    if (chartType) {
-        const ctx = document.createElement('canvas');
-        chartContainer.appendChild(ctx);
-        const chart = new Chart(ctx, {
-            type: chartType,
-            data: {
-                labels: ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
-                datasets: [{
-                    label: '# of Votes',
-                    data: [12, 19, 3, 5, 2, 3],
-                    backgroundColor: [
-                        'rgba(255, 99, 132, 0.2)',
-                        'rgba(54, 162, 235, 0.2)',
-                        'rgba(255, 206, 86, 0.2)',
-                        'rgba(75, 192, 192, 0.2)',
-                        'rgba(153, 102, 255, 0.2)',
-                        'rgba(255, 159, 64, 0.2)'
-                    ],
-                    borderColor: [
-                        'rgba(255, 99, 132, 1)',
-                        'rgba(54, 162, 235, 1)',
-                        'rgba(255, 206, 86, 1)',
-                        'rgba(75, 192, 192, 1)',
-                        'rgba(153, 102, 255, 1)',
-                        'rgba(255, 159, 64, 1)'
-                    ],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false
-            }
-        });
-
-        // Add event listeners for input fields
-        const toggleInputs = element.querySelector('.toggle-inputs');
-        const inputFields = element.querySelector('.input-fields');
-        const addDataBtn = element.querySelector('.add-data');
-        const updateChartBtn = element.querySelector('.update-chart');
-
-        toggleInputs.addEventListener('click', () => {
-            inputFields.style.display = inputFields.style.display === 'none' ? 'block' : 'none';
-        });
-
-        addDataBtn.addEventListener('click', () => {
-            const labelInput = element.querySelector('.label-input');
-            const valueInput = element.querySelector('.value-input');
-            if (labelInput.value && valueInput.value) {
-                chart.data.labels.push(labelInput.value);
-                chart.data.datasets[0].data.push(parseFloat(valueInput.value));
-                labelInput.value = '';
-                valueInput.value = '';
+            updateChartBtn.addEventListener('click', () => {
                 chart.update();
-            }
-        });
+            });
+        } else if (element.classList.contains('doc-data-cue')) {
+            const dataCueContainer = element.querySelector('.data-cue-container');
+            const addDataBtn = element.querySelector('.add-data');
+            const updateDataBtn = element.querySelector('.update-chart');
 
-        updateChartBtn.addEventListener('click', () => {
-            chart.update();
-        });
-    } else if (element.classList.contains('doc-data-cue')) {
-        const dataCueContainer = element.querySelector('.data-cue-container');
-        const addDataBtn = element.querySelector('.add-data');
-        const updateDataBtn = element.querySelector('.update-chart');
+            addDataBtn.addEventListener('click', () => {
+                const labelInput = element.querySelector('.label-input');
+                const valueInput = element.querySelector('.value-input');
+                if (labelInput.value && valueInput.value) {
+                    const dataCue = document.createElement('div');
+                    dataCue.classList.add('data-cue');
+                    dataCue.innerHTML = `
+                        <div class="label">${labelInput.value}</div>
+                        <div class="value">${valueInput.value}</div>
+                    `;
+                    dataCueContainer.appendChild(dataCue);
+                    labelInput.value = '';
+                    valueInput.value = '';
+                }
+            });
 
-        addDataBtn.addEventListener('click', () => {
-            const labelInput = element.querySelector('.label-input');
-            const valueInput = element.querySelector('.value-input');
-            if (labelInput.value && valueInput.value) {
-                const dataCue = document.createElement('div');
-                dataCue.classList.add('data-cue');
-                dataCue.innerHTML = `
-                    <div class="label">${labelInput.value}</div>
-                    <div class="value">${valueInput.value}</div>
-                `;
-                dataCueContainer.appendChild(dataCue);
-                labelInput.value = '';
-                valueInput.value = '';
-            }
-        });
-
-        updateDataBtn.addEventListener('click', () => {
-            // This button doesn't need to do anything for data cues
-            console.log('Data cues updated');
-        });
+            updateDataBtn.addEventListener('click', () => {
+                // This button doesn't need to do anything for data cues
+                console.log('Data cues updated');
+            });
+        }
     }
-}
+});

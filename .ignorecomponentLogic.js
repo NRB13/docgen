@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const packSelector = document.getElementById('pack-selector');
     const componentList = document.getElementById('component-list');
     const documentArea = document.getElementById('document-area');
+    let selectedComponent = null; // Moved here to ensure it's accessible across scripts
 
     // Component packs data
     const componentPacks = {
@@ -58,6 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 documentArea.appendChild(componentElement);
                 removePlaceholder();
                 applyGreenGlow(componentElement);
+                selectComponent(componentElement); // Ensure the selected component is tracked globally
             } catch (error) {
                 console.error(`Failed to load component: ${componentName}`, error);
                 updateStatusMessage(`Error: Unable to add ${componentName}.`, 'error');

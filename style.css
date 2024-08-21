@@ -189,6 +189,39 @@ body {
     transform: translateY(0);
 }
 
+/* Existing styles */
+
+/* Preview Modal Styles */
+.modal-xl {
+    width: 90%;
+    max-width: 1200px;
+}
+
+#preview-content {
+    max-height: 80vh;
+    overflow-y: auto;
+    padding: 20px;
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+}
+
+#preview-close-button {
+    margin-top: 20px;
+    padding: 10px 20px;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+#preview-close-button:hover {
+    background-color: #2980b9;
+    transform: translateY(-2px);
+}
+
 /* Floating Editor Toolbar */
 .editor-toolbar {
     position: absolute;
