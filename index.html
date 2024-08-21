@@ -8,32 +8,39 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="app-container">
-        <aside class="sidebar">
-            <h2>Component Library</h2>
-            <!-- Dropdown for selecting component packs -->
-            <select id="pack-selector" class="pack-selector">
-                <option value="" disabled selected>Select a Pack</option>
-                <option value="general-pack">General Pack</option>
-                <option value="presentation-pack">Presentation Pack</option>
-                <option value="professional-pack">Professional Pack</option>
-            </select>
-            <!-- Component list will be dynamically populated based on the selected pack -->
-            <ul id="component-list" class="dropdown-content">
-                <!-- Components will be loaded here dynamically -->
-            </ul>
-        </aside>
-        <main class="main-content">
-            <div id="document-area" class="document-area">
-                <p class="placeholder-text">Drag components here to start building your document.</p>
-            </div>
-            <div class="toolbar">
-                <button id="save-button">Save</button>
-                <button id="export-button">Export PDF</button>
-                <button id="clear-button">Clear</button>
-            </div>
-        </main>
-    </div>
+    <!-- index.html snippet -->
+<div class="app-container">
+    <aside class="sidebar">
+        <h2>Component Library</h2>
+        <!-- Existing dropdown and component list -->
+        <select id="pack-selector" class="pack-selector">
+            <option value="" disabled selected>Select a Pack</option>
+            <option value="general-pack">General Pack</option>
+            <option value="presentation-pack">Presentation Pack</option>
+            <option value="professional-pack">Professional Pack</option>
+        </select>
+        <ul id="component-list" class="dropdown-content">
+            <!-- Components will be loaded here dynamically -->
+        </ul>
+        
+        <!-- New Navigation Buttons -->
+        <div class="nav-buttons">
+            <button onclick="window.location.href='pages/gallery.html'" class="nav-button">Gallery</button>
+            <button onclick="window.location.href='pages/plugin-editor.html'" class="nav-button">Plugins</button>
+            <button onclick="window.location.href='pages/doc-preview.html'" class="nav-button">Doc Preview</button>
+        </div>
+    </aside>
+    <main class="main-content">
+        <div id="document-area" class="document-area">
+            <p class="placeholder-text">Drag components here to start building your document.</p>
+        </div>
+        <div class="toolbar">
+            <button id="save-button">Save</button>
+            <button id="export-button">Export PDF</button>
+            <button id="clear-button">Clear</button>
+        </div>
+    </main>
+</div>
 
     <!-- Modal Structure -->
     <div id="modal" class="modal hidden">
@@ -56,6 +63,7 @@
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="script.js"></script>
+    <script src="componentLogic.js"></script>
+    <script src="toolbarLogic.js"></script>
 </body>
 </html>
